@@ -1,8 +1,6 @@
-streamlit==1.37.0
+streamlit
 requests
-beautifulsoup4
-pandas
-networkx
-pyvis
 nltk
 rake-nltk
+networkx
+matplotlib
