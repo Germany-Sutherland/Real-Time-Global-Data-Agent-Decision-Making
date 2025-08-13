@@ -1,5 +1,7 @@
 streamlit
-requests
 nltk
 rake-nltk
+networkx
 pyvis
+requests
+textblob
