@@ -1,0 +1,8 @@
+streamlit==1.37.0
+requests
+beautifulsoup4
+pandas
+networkx
+pyvis
+nltk
+rake-nltk
