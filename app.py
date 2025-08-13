@@ -14,9 +14,6 @@ for pkg in ['punkt', 'punkt_tab', 'stopwords', 'vader_lexicon']:
     except LookupError:
         nltk.download(pkg)
 
-EMAIL_RE = re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+")
-PHONE_RE = re.compile(r"(\+?\d{1,3}[\s-]?)?(\(?\d{3}\)?[\s-]?)?\d{3}[\s-]?\d{4}")
-
 st.set_page_config(page_title="🛰️ CTO 2030", layout="wide")
 
 # Fetch data functions
@@ -38,7 +35,7 @@ def fetch_wikipedia(query, limit):
 # Keyword extraction
 def extract_keywords(text):
     r = Rake()
-    r.extract_keywords_from_text(text)
+    r.extract_keywords_from_text(re.sub(r'<.*?>', '', text))  # remove HTML tags
     return r.get_ranked_phrases()
 
 # Build knowledge graph
@@ -57,17 +54,18 @@ def sentiment_summary(text):
     sia = SentimentIntensityAnalyzer()
     return sia.polarity_scores(text)
 
-# FMEA
+# FMEA data
 FMEA_HEADERS = ["Failure Mode", "Effect", "Cause", "Severity", "Occurrence", "Detection", "RPN"]
 FMEA_DATA = [
-    ["Data Fetch Failure", "No updates from APIs", "API downtime", 8, 5, 4, 8*5*4],
-    ["Keyword Extraction Error", "No insights generated", "Text parsing issues", 7, 3, 5, 7*3*5],
-    ["Graph Render Issue", "No relationship visualization", "Matplotlib/NetworkX error", 6, 2, 4, 6*2*4]
+    ["Data Fetch Failure", "No updates from APIs", "API downtime", 8, 5, 4, 160],
+    ["Keyword Extraction Error", "No insights generated", "Text parsing issues", 7, 3, 5, 105],
+    ["Graph Render Issue", "No relationship visualization", "Rendering error", 6, 2, 4, 48]
 ]
 
-# UI
+# UI Layout
 st.title("🛰️ CTO 2030: AI News & Knowledge Graph Explorer")
-source_choice = st.multiselect("Data Sources", ["HackerNews", "Wikipedia"], default=["HackerNews"])
+st.caption("Real-time tech intelligence with AI insights for the next decade.")
+source_choice = st.multiselect("Select Data Sources", ["HackerNews", "Wikipedia"], default=["HackerNews"])
 items_per_source = st.slider("Items per source", 1, 20, 3)
 
 all_docs = []
@@ -81,24 +79,20 @@ if "Wikipedia" in source_choice:
     for w in wiki:
         all_docs.append({"title": w.get("title", ""), "content": w.get("snippet", "")})
 
-# Build graph and display
 if all_docs:
     G = build_graph(all_docs)
     plt.figure(figsize=(8, 6))
-    nx.draw(G, with_labels=True, node_color='lightblue', edge_color='gray')
+    nx.draw(G, with_labels=True, node_color='lightblue', edge_color='gray', font_size=8)
     st.pyplot(plt)
 
-    # Summary
     combined_text = " ".join([doc['title'] + " " + doc['content'] for doc in all_docs])
     st.subheader("Summary")
-    st.write("Top Keywords:", extract_keywords(combined_text)[:10])
-    st.write("Sentiment:", sentiment_summary(combined_text))
+    st.write("**Top Keywords:**", ", ".join(extract_keywords(combined_text)[:10]))
+    st.write("**Sentiment:**", sentiment_summary(combined_text))
 
-    # Agentic AI Agent - CTO Kumar
-    st.subheader("CTO Kumar - Strategy Insights")
-    st.write("Based on the collected data, CTO Kumar suggests focusing on AI governance, scalable cloud-native systems, and privacy-preserving computation for future-proof architectures.")
+    st.subheader("🤖 CTO Kumar - Strategic AI Agent")
+    st.info("CTO Kumar recommends focusing on AI governance, scalable cloud-native systems, quantum-safe security, and ethical data usage for future-proof architectures.")
 
-    # FMEA Table
     st.subheader("FMEA - Failure Mode and Effects Analysis")
     st.table(FMEA_DATA)
 else:
