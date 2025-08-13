@@ -2,5 +2,4 @@ streamlit
 requests
 nltk
 rake-nltk
-networkx
-matplotlib
+pyvis
