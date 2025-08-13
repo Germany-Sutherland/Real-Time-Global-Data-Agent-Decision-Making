@@ -1,4 +1,4 @@
-import nltk_setup  # Ensures punkt & stopwords are available before running the app
+import nltk_setup
 import streamlit as st
 from rake_nltk import Rake
 import networkx as nx
