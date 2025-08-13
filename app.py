@@ -1,36 +1,38 @@
-import nltk_setup
 import streamlit as st
-from rake_nltk import Rake
-import networkx as nx
 from pyvis.network import Network
-import requests
+import wikipedia
 
+# App title
 st.set_page_config(page_title="🛰️ CTO 2030: AI News & Knowledge Graph Explorer", layout="wide")
-
 st.title("🛰️ CTO 2030: AI News & Knowledge Graph Explorer")
-st.write("Real-time tech intelligence with AI insights for the next decade.")
+st.caption("Real-time tech intelligence with AI insights for the next decade.")
 
-source = st.multiselect("Select Data Sources", ["HackerNews", "Wikipedia"])
-items_per_source = st.slider("Items per source", 1, 20, 5)
+# Sidebar input
+st.sidebar.header("Select Data Sources")
+wiki_enabled = st.sidebar.checkbox("Wikipedia", value=True)
+items_per_source = st.sidebar.slider("Items per source", 1, 20, 5)
+wiki_query = st.sidebar.text_input("Wikipedia query", "Artificial Intelligence")
 
-query = st.text_input("Wikipedia query", "Artificial Intelligence")
+# Only run Wikipedia search if enabled
+if wiki_enabled and wiki_query.strip():
+    try:
+        st.subheader(f"Wikipedia Search: {wiki_query}")
+        search_results = wikipedia.search(wiki_query, results=items_per_source)
+        st.write(search_results)
 
-if st.button("📊 Knowledge Graph"):
-    docs = []
-    if "Wikipedia" in source:
-        res = requests.get(f"https://en.wikipedia.org/api/rest_v1/page/summary/{query}").json()
-        docs.append({"title": res.get("title", ""), "content": res.get("extract", "")})
+        # Create network visualization
+        net = Network(height="500px", width="100%", bgcolor="#222222", font_color="white")
+        net.add_node(wiki_query, label=wiki_query, color="#ff0000")
 
-    if docs:
-        r = Rake()
-        G = nx.Graph()
-        for d in docs:
-            r.extract_keywords_from_text(d.get("title", "") + ". " + d.get("content", ""))
-            for kw in r.get_ranked_phrases():
-                G.add_node(kw)
-                G.add_edge(d.get("title", ""), kw)
+        for title in search_results:
+            net.add_node(title, label=title, color="#00ff00")
+            net.add_edge(wiki_query, title)
 
-        net = Network(notebook=False, height="500px", width="100%", bgcolor="#222222", font_color="white")
-        net.from_nx(G)
-        net.show("graph.html")
-        st.components.v1.html(open("graph.html", "r", encoding="utf-8").read(), height=520)
+        # Save & display the graph
+        net.save_graph("graph.html")
+        with open("graph.html", "r", encoding="utf-8") as f:
+            html_code = f.read()
+        st.components.v1.html(html_code, height=550, scrolling=True)
+
+    except Exception as e:
+        st.error(f"Error fetching Wikipedia data: {e}")
