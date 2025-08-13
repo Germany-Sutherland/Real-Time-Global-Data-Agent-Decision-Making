@@ -3,4 +3,3 @@ requests
 nltk
 rake-nltk
 pyvis
-transformers
