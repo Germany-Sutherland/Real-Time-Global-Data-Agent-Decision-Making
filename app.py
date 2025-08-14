@@ -34,5 +34,26 @@ if wiki_enabled and wiki_query.strip():
             html_code = f.read()
         st.components.v1.html(html_code, height=550, scrolling=True)
 
+        # -----------------------
+        # Real-time node insights
+        # -----------------------
+        from transformers import pipeline
+
+        generator = pipeline("text2text-generation", model="google/flan-t5-base")
+
+        def describe_nodes(nodes):
+            descriptions = []
+            for node in nodes:
+                prompt = f"Explain in 2 lines what '{node}' means in technology."
+                output = generator(prompt, max_length=50, do_sample=False)
+                descriptions.append(f"**{node}**: {output[0]['generated_text']}")
+            return descriptions
+
+        graph_nodes = [wiki_query] + search_results  # list of all node labels
+        st.markdown("---")
+        st.subheader("🔍 Real-time Node Insights")
+        for desc in describe_nodes(graph_nodes):
+            st.write(desc)
+
     except Exception as e:
         st.error(f"Error fetching Wikipedia data: {e}")
