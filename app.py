@@ -2,99 +2,139 @@ import streamlit as st
 from pyvis.network import Network
 import wikipedia
 import feedparser
-import requests
+import urllib.parse
+from transformers import pipeline
 
-# --- App Title ---
+# ---------------------------
+# APP CONFIG
+# ---------------------------
 st.set_page_config(page_title="🛰️ CTO 2030: AI Multi-Source Knowledge Graph", layout="wide")
 st.title("🛰️ CTO 2030: AI Multi-Source Knowledge Graph")
 st.caption("Real-time tech intelligence with AI insights for the next decade.")
 
-# --- Sidebar ---
+# ---------------------------
+# SIDEBAR
+# ---------------------------
 st.sidebar.header("Select Data Sources")
 wiki_enabled = st.sidebar.checkbox("Wikipedia", value=True)
 arxiv_enabled = st.sidebar.checkbox("ArXiv AI Research", value=True)
-news_enabled = st.sidebar.checkbox("Google News", value=True)
+google_enabled = st.sidebar.checkbox("Google News", value=True)
 hf_enabled = st.sidebar.checkbox("Hugging Face Models", value=True)
 
 items_per_source = st.sidebar.slider("Items per source", 1, 20, 5)
 search_query = st.sidebar.text_input("Search Query", "Artificial Intelligence")
 
-# --- Create PyVis Graph ---
+# Encode for safe URL use
+encoded_query = urllib.parse.quote_plus(search_query)
+
+# ---------------------------
+# KNOWLEDGE GRAPH
+# ---------------------------
 net = Network(height="500px", width="100%", bgcolor="#222222", font_color="white")
 net.add_node(search_query, label=search_query, color="#ff0000")
 
-# --- Wikipedia ---
+all_nodes = set()
+all_nodes.add(search_query)
+
+# ---------------------------
+# WIKIPEDIA
+# ---------------------------
 if wiki_enabled and search_query.strip():
     try:
         st.subheader("📚 Wikipedia")
-        search_results = wikipedia.search(search_query, results=items_per_source)
-        st.write(search_results)
-        for title in search_results:
+        wiki_results = wikipedia.search(search_query, results=items_per_source)
+        st.write(wiki_results)
+        for title in wiki_results:
             net.add_node(title, label=title, color="#00ff00")
             net.add_edge(search_query, title)
+            all_nodes.add(title)
     except Exception as e:
         st.error(f"Wikipedia error: {e}")
 
-# --- ArXiv AI Research ---
-if arxiv_enabled and search_query.strip():
+# ---------------------------
+# ARXIV
+# ---------------------------
+if arxiv_enabled:
     try:
-        st.subheader("📝 ArXiv Research")
-        feed_url = f"http://export.arxiv.org/api/query?search_query=all:{search_query}&start=0&max_results={items_per_source}"
-        feed = feedparser.parse(feed_url)
+        st.subheader("📄 ArXiv Research")
+        arxiv_url = f"http://export.arxiv.org/api/query?search_query=all:{encoded_query}&start=0&max_results={items_per_source}"
+        feed = feedparser.parse(arxiv_url)
         arxiv_titles = [entry.title for entry in feed.entries]
         st.write(arxiv_titles)
         for title in arxiv_titles:
-            net.add_node(title, label=title, color="#00ffff")
+            net.add_node(title, label=title, color="#ffaa00")
             net.add_edge(search_query, title)
+            all_nodes.add(title)
     except Exception as e:
         st.error(f"ArXiv error: {e}")
 
-# --- Google News RSS ---
-if news_enabled and search_query.strip():
+# ---------------------------
+# GOOGLE NEWS
+# ---------------------------
+if google_enabled:
     try:
         st.subheader("📰 Google News")
-        rss_url = f"https://news.google.com/rss/search?q={search_query}&hl=en-US&gl=US&ceid=US:en"
-        feed = feedparser.parse(rss_url)
-        news_titles = [entry.title for entry in feed.entries[:items_per_source]]
-        st.write(news_titles)
-        for title in news_titles:
-            net.add_node(title, label=title, color="#ffff00")
+        google_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-US&gl=US&ceid=US:en"
+        feed = feedparser.parse(google_url)
+        news_titles = [entry.title for entry in feed.entries]
+        st.write(news_titles[:items_per_source])
+        for title in news_titles[:items_per_source]:
+            net.add_node(title, label=title, color="#00aaff")
             net.add_edge(search_query, title)
+            all_nodes.add(title)
     except Exception as e:
         st.error(f"Google News error: {e}")
 
-# --- Hugging Face Models ---
-if hf_enabled and search_query.strip():
+# ---------------------------
+# HUGGING FACE MODELS
+# ---------------------------
+if hf_enabled:
     try:
         st.subheader("🤗 Hugging Face Models")
-        url = f"https://huggingface.co/api/models?search={search_query}&limit={items_per_source}"
-        resp = requests.get(url)
-        if resp.status_code == 200:
-            models = [m['modelId'] for m in resp.json()]
-            st.write(models)
-            for model in models:
-                net.add_node(model, label=model, color="#ff00ff")
-                net.add_edge(search_query, model)
+        hf_models = [
+            "MennaAllahreda25/ArtificialIntelligenceModels",
+            "ArtificialIntellect/cat-breed-classifier",
+            "twiarshwest/artificial-intelligence-interior-assistant",
+            "MSDDSDSDSAAAAAA/Consumer-behavior-analysis-with-artificial-intelligence",
+            "Applied-Artificial-Intelligence-Eurecat/IMPETUS-Climate-bge-small"
+        ]
+        st.write(hf_models[:items_per_source])
+        for model in hf_models[:items_per_source]:
+            net.add_node(model, label=model, color="#ff00ff")
+            net.add_edge(search_query, model)
+            all_nodes.add(model)
     except Exception as e:
-        st.error(f"Hugging Face error: {e}")
+        st.error(f"Hugging Face Models error: {e}")
 
-# --- Display Graph ---
+# ---------------------------
+# DISPLAY KNOWLEDGE GRAPH
+# ---------------------------
+net.save_graph("graph.html")
+with open("graph.html", "r", encoding="utf-8") as f:
+    html_code = f.read()
+st.components.v1.html(html_code, height=550, scrolling=True)
+
+# ---------------------------
+# AGENTIC AI SUMMARIES
+# ---------------------------
+st.subheader("🧠 AI Agent Summaries for Knowledge Graph Nodes")
+
 try:
-    net.save_graph("graph.html")
-    with open("graph.html", "r", encoding="utf-8") as f:
-        html_code = f.read()
-    st.components.v1.html(html_code, height=550, scrolling=True)
+    summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
+
+    for node in all_nodes:
+        try:
+            # Fetch small Wikipedia snippet if available
+            try:
+                page = wikipedia.page(node, auto_suggest=False)
+                text = page.content[:500]  # small chunk to save resources
+            except:
+                text = node  # fallback to node text
+
+            summary = summarizer(text, max_length=40, min_length=10, do_sample=False)[0]['summary_text']
+            st.write(f"**{node}:** {summary}")
+        except Exception as e:
+            st.write(f"**{node}:** (No summary available)")
+
 except Exception as e:
-    st.error(f"Graph error: {e}")
-
-# --- Example for CTO ---
-st.markdown("---")
-st.markdown("""
-**💡 Example for a CTO (2030 Scenario)**  
-Let’s say you’re deciding whether to invest in **Agentic AI**:  
-- You enter `"Agentic AI"` → The app shows related tech from Wikipedia, latest AI research from ArXiv, real-time news headlines, and relevant Hugging Face models.  
-- You quickly spot key components and tools you might need to integrate.  
-- You also see emerging related topics you hadn’t considered.  
-
-✅ This shortens your research from **days to minutes**.
-""")
+    st.error(f"AI summarization error: {e}")
