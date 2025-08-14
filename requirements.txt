@@ -2,9 +2,6 @@ streamlit
 pyvis
 wikipedia
 nltk
-streamlit
-pyvis
-wikipedia
 feedparser
 requests
 transformers
